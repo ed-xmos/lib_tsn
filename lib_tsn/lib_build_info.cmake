@@ -14,11 +14,11 @@ set(LIB_OPTIONAL_HEADERS    "ethernet_conf.h"
 set(LIB_COMPILER_FLAGS      -g
                             -Os)
 
-set(LIB_COMPILER_FLAGS_media_clock_server.xc ${LIB_COMPILER_FLAGS} -g -O3)
-set(LIB_COMPILER_FLAGS_audio_output_fifo.c ${LIB_COMPILER_FLAGS} -O3)
-set(LIB_COMPILER_FLAGS_avb_1722_talker_support_audio.c ${LIB_COMPILER_FLAGS} -O3)
-set(LIB_COMPILER_FLAGS_audio_buffering.xc ${LIB_COMPILER_FLAGS} -O3)
-set(LIB_COMPILER_FLAGS_avb_1722_talker.xc ${LIB_COMPILER_FLAGS} -O3)
+set(LIB_COMPILER_FLAGS_media_clock_server.xc            ${LIB_COMPILER_FLAGS} -g -O3)
+set(LIB_COMPILER_FLAGS_audio_output_fifo.c              ${LIB_COMPILER_FLAGS} -O3)
+set(LIB_COMPILER_FLAGS_avb_1722_talker_support_audio.c  ${LIB_COMPILER_FLAGS} -O3)
+set(LIB_COMPILER_FLAGS_audio_buffering.xc               ${LIB_COMPILER_FLAGS} -O3)
+set(LIB_COMPILER_FLAGS_avb_1722_talker.xc               ${LIB_COMPILER_FLAGS} -O3)
 
 set(LIB_INCLUDES            api
                             src

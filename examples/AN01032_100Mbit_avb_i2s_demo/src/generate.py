@@ -47,6 +47,8 @@ def do_replace(read_file, write_file, replace_defines):
 def main():
     srcpath = sys.argv[1]
     dstpath = sys.argv[2]
+    if not os.path.exists(dstpath):
+        os.makedirs(dstpath)
     read_file = open(os.path.join(srcpath, 'aem_descriptors.h.in'), 'r')
     write_file = open(os.path.join(dstpath, 'aem_descriptors.h'), 'w')
 
