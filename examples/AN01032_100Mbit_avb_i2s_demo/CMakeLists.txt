@@ -28,24 +28,5 @@ execute_process(
     COMMAND echo "running python AEM generate"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-# Legacy lib with no XCCM support. Fetch and build from source
-set(XMOS_DEP_DIR_lib_gpio ${XMOS_SANDBOX_DIR}/lib_gpio)
-if(NOT EXISTS ${XMOS_SANDBOX_DIR}/lib_gpio)
-    include(FetchContent)
-    FetchContent_Declare(
-        lib_gpio
-        GIT_REPOSITORY git@github.com:xmos/lib_gpio
-        GIT_TAG develop
-        SOURCE_DIR ${XMOS_SANDBOX_DIR}/lib_gpio
-    )
-    FetchContent_Populate(lib_gpio)
-endif()
-
-# list(APPEND APP_DEPENDENT_MODULES "lib_gpio") # Can't do this yet as no XCCM branch
-file(GLOB_RECURSE SOURCES_XC_APP RELATIVE   ${CMAKE_CURRENT_LIST_DIR} "src/*.xc")
-file(GLOB_RECURSE SOURCES_XC_GPIO RELATIVE  ${CMAKE_CURRENT_LIST_DIR} "src/*.xc")
-set(APP_XC_SRCS                             ${SOURCES_XC_APP} ${SOURCES_XC_GPIO})
-list(APPEND APP_INCLUDES                    ../../../lib_gpio/lib_gpio/api)
-
 
 XMOS_REGISTER_APP()
