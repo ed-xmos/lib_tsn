@@ -62,3 +62,13 @@ def main():
     print "AEM descriptor header file generation complete"
 
 main()
+
+# ensure we exit cleanly when we run from cmake
+try:
+    sys.stdout.close()
+except:
+    pass
+try:
+    sys.stderr.close()
+except:
+    pass
