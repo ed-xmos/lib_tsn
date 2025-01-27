@@ -389,7 +389,6 @@ int main(void)
 
 
     on tile[0]: {
-      set_core_high_priority_on();
       i2s_frame_master(i_i2s,
                  p_aud_dout, AVB_NUM_MEDIA_OUTPUTS/2,
                  p_aud_din, AVB_NUM_MEDIA_INPUTS/2,
