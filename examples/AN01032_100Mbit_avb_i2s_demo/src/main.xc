@@ -31,6 +31,7 @@ fl_QSPIPorts qspi_ports =
 };
 
 
+
 in port p_rxclk = PORT_ETH_RXCLK;
 in port p_rxer  = PORT_ETH_RXER; 
 in port p_rxd   = PORT_ETH_RXD; 
@@ -78,7 +79,7 @@ void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
 {
   audio_frame_t *unsafe p_in_frame;
   audio_double_buffer_t *unsafe double_buffer;
-  int32_t *unsafe sample_out_buf;
+  int32_t *unsafe sample_out_buf = NULL;
   unsigned cur_sample_rate;
   timer tmr;
 
@@ -189,8 +190,10 @@ void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
     case i2s.restart_check() -> i2s_restart_t restart:
 
       unsafe {
-        if (sample_out_buf[8]) {
-          restart = I2S_RESTART;
+        /* Ensure we have received our first sample buf first and then
+           check for magic value which indicates a sample rate change */
+        if (sample_out_buf != NULL && sample_out_buf[AVB_NUM_MEDIA_INPUTS + AVB_NUM_MEDIA_OUTPUTS]) {
+          restart = I2S_RESTART;        
           while (!stestct(c_audio)) {
             c_audio :> int;
           }
@@ -212,15 +215,16 @@ void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
 
     case i2s.send(size_t num_out, int32_t samples[num_out]):
       unsafe{
+        c_audio :> sample_out_buf;        
         for(int index = 0; index < num_out; index++){
           samples[index] = sample_out_buf[index];
         }
         
-        c_audio :> sample_out_buf;
         tmr :> p_in_frame->timestamp;
         audio_frame_t *unsafe new_frame = audio_buffers_swap_active_buffer(*double_buffer);
         c_audio <: p_in_frame;
         p_in_frame = new_frame;
+        
       }
       break; // End of send
     }
