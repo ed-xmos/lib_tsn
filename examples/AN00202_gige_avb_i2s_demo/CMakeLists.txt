@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
-project(app_100Mbit_avb_i2s_demo)
+project(app_gige_avb_i2s_demo)
 
 set(APP_HW_TARGET           SLICEKIT-ETH-TRIANGLE1-PLL-TRIANGLE0.xn)
 

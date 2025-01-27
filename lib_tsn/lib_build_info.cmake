@@ -1,6 +1,6 @@
 set(LIB_NAME lib_tsn)
 set(LIB_VERSION 8.0.0)
-set(LIB_DEPENDENT_MODULES   "lib_ethernet(4.0.0)"
+set(LIB_DEPENDENT_MODULES   "lib_ethernet(develop)"
                             "lib_i2c(6.4.0)"
                             "lib_logging(2.1.0)"
                             "lib_xassert(4.3.1)"
