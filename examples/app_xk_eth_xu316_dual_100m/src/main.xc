@@ -17,44 +17,55 @@
 #include "smi.h"
 #include "audio_buffering.h"
 #include "avb_conf.h"
+#include "xk_eth_xu316_dual_100m/board.h"
 
 // Ports and clocks used by the application
-on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER; // Ports are hardwired to internal OTP for reading
+// on tile[0]: otp_ports_t otp_ports0 = OTP_PORTS_INITIALIZER; // Ports are hardwired to internal OTP for reading
                                                             // MAC address and serial number
+
+on tile[1]: otp_ports_t otp_ports0 = {XS1_PORT_32B, XS1_PORT_16C, XS1_PORT_16D};
+
 // Fixed QSPI flash ports that are used for firmware upgrade and persistent data storage
+// fl_QSPIPorts qspi_ports =
+// {
+//   PORT_SQI_CS,
+//   PORT_SQI_SCLK,
+//   PORT_SQI_SIO,
+//   on tile[0]: XS1_CLKBLK_1
+// };
+
+// Work around clash for now - these should go nowhere
 fl_QSPIPorts qspi_ports =
 {
-  PORT_SQI_CS,
-  PORT_SQI_SCLK,
-  PORT_SQI_SIO,
-  on tile[0]: XS1_CLKBLK_1
+  on tile[1]: XS1_PORT_1H,
+  on tile[1]: XS1_PORT_1K,
+  on tile[1]: XS1_PORT_4C,
+  on tile[1]: XS1_CLKBLK_3
 };
 
 
+port p_smi_mdio = MDIO;
+port p_smi_mdc = MDC;
 
-in port p_rxclk = PORT_ETH_RXCLK;
-in port p_rxer  = PORT_ETH_RXER; 
-in port p_rxd   = PORT_ETH_RXD; 
-in port p_rxdv  = PORT_ETH_RXDV;
-in port p_txclk = PORT_ETH_TXCLK;
-out port p_txen = PORT_ETH_TXEN;
-out port p_txd  = PORT_ETH_TXD;
-port p_smi_mdio = PORT_SMI_MDIO;
-port p_smi_mdc  = PORT_SMI_MDC;
-clock eth_rxclk = on tile[1]: XS1_CLKBLK_1;
-clock eth_txclk = on tile[1]: XS1_CLKBLK_2;
+port p_phy_rxd = PHY_0_RXD_4BIT;
+port p_phy_txd = PHY_0_TXD_4BIT;
+port p_phy_rxdv = PHY_0_RXDV;
+port p_phy_txen = PHY_0_TX_EN;
+port p_phy_clk = PHY_1_CLK_50M;
 
-port p_scl = PORT_AUD_SCL;
-port p_sda = PORT_AUD_SDA;
+clock phy_rxclk = on tile[0]: XS1_CLKBLK_1;
+clock phy_txclk = on tile[0]: XS1_CLKBLK_2;
 
-out buffered port:32 p_fs[1] = { PORT_AUD_PLL }; // Low frequency PLL frequency reference
-out buffered port:32 p_i2s_lrclk = PORT_AUD_LRCLK;
-out port p_i2s_bclk = PORT_AUD_SCLK;
-in port p_i2s_mclk = PORT_AUD_MCLK;
-out buffered port:32 p_aud_dout[2] = {PORT_AUD_DAC0, PORT_AUD_DAC1};
-in buffered port:32 p_aud_din[2] = {PORT_AUD_ADC0, PORT_AUD_ADC1};
-clock clk_i2s_bclk = on tile[0]: XS1_CLKBLK_2;
-out port p_codec_rst_leds = PORT_AUD_CTRL;
+on tile[1]: port p_i2c = XS1_PORT_4E; // tile[1]
+
+on tile[1]: out buffered port:32 p_fs[1] = { XS1_PORT_1A }; // Low frequency PLL frequency reference
+on tile[1]: out buffered port:32 p_i2s_lrclk = XS1_PORT_1L;
+on tile[1]: out port p_i2s_bclk = XS1_PORT_1P;
+on tile[1]: in port p_i2s_mclk = XS1_PORT_1D;
+on tile[1]: out buffered port:32 p_aud_dout[AVB_NUM_MEDIA_OUTPUTS / 2] = {XS1_PORT_1I};
+on tile[1]: in buffered port:32 p_aud_din[AVB_NUM_MEDIA_INPUTS / 2] = {XS1_PORT_1J};
+clock clk_i2s_bclk = on tile[1]: XS1_CLKBLK_2;
+on tile[1]: out port p_codec_rst_leds = XS1_PORT_8D;
 
 // I2C addresses for the CODECS
 const int codec1_addr = 0x48;
@@ -83,7 +94,7 @@ void buffer_manager_to_i2s(server i2s_frame_callback_if i2s,
   unsigned cur_sample_rate;
   timer tmr;
 
-   audio_clock_CS2100CP_init(i2c);
+  audio_clock_CS2100CP_init(i2c);
 
   while (1) {
     select {
@@ -357,23 +368,30 @@ int main(void)
   par
   {
 
-    on tile[1]: mii_ethernet_rt_mac(i_eth_cfg, NUM_ETH_CFG_CLIENTS,
-                         i_eth_rx_lp, NUM_ETH_RX_LP_CLIENTS,
-                         i_eth_tx_lp, NUM_ETH_TX_LP_CLIENTS,
-                         c_eth_rx_hp,
-                         c_eth_tx_hp,
-                         p_rxclk, p_rxer, p_rxd, p_rxdv,
-                         p_txclk, p_txen, p_txd,
-                         eth_rxclk, eth_txclk,
-                         RX_BUFSIZE_WORDS,
-                         TX_BUFSIZE_WORDS,
-                         ETHERNET_DISABLE_SHAPER);
+    on tile[0]: rmii_ethernet_rt_mac( i_eth_cfg, NUM_ETH_CFG_CLIENTS,
+                                      i_eth_rx_lp, NUM_ETH_RX_LP_CLIENTS,
+                                      i_eth_tx_lp, NUM_ETH_TX_LP_CLIENTS,
+                                      c_eth_rx_hp, c_eth_tx_hp,
+                                      p_phy_clk,
+                                      p_phy_rxd,
+                                      null,
+                                      USE_UPPER_2B,
+                                      p_phy_rxdv,
+                                      p_phy_txen,
+                                      p_phy_txd,
+                                      null,
+                                      USE_UPPER_2B,
+                                      phy_rxclk,
+                                      phy_txclk,
+                                      get_port_timings(0),
+                                      RX_BUFSIZE_WORDS, TX_BUFSIZE_WORDS,
+                                      ETHERNET_DISABLE_SHAPER);
 
     on tile[1].core[0]: LAN8710_phy_driver(i_smi, i_eth_cfg[MAC_CFG_TO_PHY_DRIVER]);
 
     on tile[1]: [[distribute]] smi(i_smi, p_smi_mdio, p_smi_mdc);
 
-    on tile[0]: gptp_media_clock_server(i_media_clock_ctl,
+    on tile[1]: gptp_media_clock_server(i_media_clock_ctl,
                                         null,
                                         c_buf_ctl,
                                         AVB_NUM_LISTENER_UNITS,
@@ -384,11 +402,10 @@ int main(void)
                                         c_ptp, NUM_PTP_CHANS,
                                         PTP_GRANDMASTER_CAPABLE);
 
-    on tile[0]: [[distribute]] i2c_master(i_i2c, NUM_I2C_IFS, p_scl, p_sda, 100);
+    on tile[1]: [[distribute]] i2c_master_single_port(i_i2c, NUM_I2C_IFS, p_i2c, 100, 1, 0, 0);
 
 
-
-    on tile[0]: {
+    on tile[1]: {
       i2s_frame_master(i_i2s,
                  p_aud_dout, AVB_NUM_MEDIA_OUTPUTS/2,
                  p_aud_din, AVB_NUM_MEDIA_INPUTS/2,
@@ -399,30 +416,31 @@ int main(void)
                  clk_i2s_bclk);
     }
 
-    on tile[0]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C], p_codec_rst_leds);
+    on tile[1]: [[distribute]] buffer_manager_to_i2s(i_i2s, c_audio, i_i2c[I2S_TO_I2C], p_codec_rst_leds);
 
-    on tile[0]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_I2S_IO);
+    on tile[1]: audio_buffer_manager(c_audio, i_audio_in_push, i_audio_out_pull, c_media_ctl[0], AUDIO_I2S_IO);
 
-    on tile[0]: [[distribute]] audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
+    on tile[1]: [[distribute]] audio_input_sample_buffer(i_audio_in_push, i_audio_in_pull);
 
-    on tile[0]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
+    on tile[1]: avb_1722_talker(c_ptp[PTP_TO_TALKER],
                                 c_eth_tx_hp,
                                 c_talker_ctl[0],
                                 AVB_NUM_SOURCES,
                                 i_audio_in_pull);
 
-    on tile[0]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
+    on tile[1]: [[distribute]] audio_output_sample_buffer(i_audio_out_push, i_audio_out_pull);
 
-    on tile[0]: avb_1722_listener(c_eth_rx_hp,
+    on tile[1]: avb_1722_listener(c_eth_rx_hp,
                                   c_buf_ctl[0],
                                   null,
                                   c_listener_ctl[0],
                                   AVB_NUM_SINKS,
                                   i_audio_out_push);
 
-    on tile[0]: {
+    on tile[1]: {
       char mac_address[6];
-      if (otp_board_info_get_mac(otp_ports0, 0, mac_address) == 0) {
+      // if (otp_board_info_get_mac(otp_ports0, 0, mac_address) == 0) {
+      if (1) {
         const char mac_address_manual[] = {0x12, 0x34, 0x56, 0x67, 0x89, 0xab};
         debug_printf("No MAC address programmed in OTP, falling back to %x:%x:%x:%x:%x:%x\n",
             mac_address_manual[0], mac_address_manual[1], mac_address_manual[2],
